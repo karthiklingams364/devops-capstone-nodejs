@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "karthiklingams364/node-app"
+        IMAGE = "karthikeyansivalingam/node-app"
         APP_SERVER = "ubuntu@3.91.15.96"
         CONTAINER_NAME = "nodeapp"
     }
