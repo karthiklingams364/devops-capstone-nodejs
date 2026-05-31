@@ -15,20 +15,13 @@ pipeline {
             }
         }
 
-        stage('Check Docker') {
-            steps {
-                sh 'docker --version'
-                sh 'docker ps'
-            }
-        }
-
-        stage('Build Image') {
+        stage('Build') {
             steps {
                 sh "docker build -t ${IMAGE}:${BUILD_NUMBER} ."
             }
         }
 
-        stage('Push Image') {
+        stage('Push') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
