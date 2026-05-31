@@ -17,21 +17,22 @@ pipeline {
             }
         }
 
-stage('Push') {
-    steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-            sh '''
-            set -e
+        stage('Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh """
+                    set -e
 
-            echo "Logging into Docker Hub..."
-            echo $PASS | docker login -u $USER --password-stdin
+                    echo "Logging into Docker Hub..."
+                    echo $PASS | docker login -u $USER --password-stdin
 
-            echo "Pushing image..."
-            docker push karthikeyansivalingam/node-app:${BUILD_NUMBER}
-            '''
+                    echo "Pushing image..."
+                    docker push ${IMAGE}:${BUILD_NUMBER}
+                    """
+                }
+            }
         }
-    }
-}
+
         stage('Deploy') {
             steps {
                 sh """
