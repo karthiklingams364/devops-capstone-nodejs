@@ -16,59 +16,38 @@ pipeline {
             }
         }
 
-        stage('Verify Docker') {
+        stage('Build Image') {
             steps {
-                sh '''
-                echo "Checking Docker..."
-                which docker || true
-                /usr/bin/docker --version
-                '''
+                sh "/usr/bin/docker build -t ${IMAGE}:${BUILD_NUMBER} ."
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh """
-                ${DOCKER} build -t ${IMAGE}:${BUILD_NUMBER} .
-                """
-            }
-        }
-
-        stage('Login & Push to DockerHub') {
+        stage('Push Image') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    sh """
-                    echo $PASS | ${DOCKER} login -u $USER --password-stdin
-                    ${DOCKER} push ${IMAGE}:${BUILD_NUMBER}
-                    """
+                    sh '''
+                    echo $PASS | /usr/bin/docker login -u $USER --password-stdin
+                    /usr/bin/docker push ${IMAGE}:${BUILD_NUMBER}
+                    '''
                 }
             }
         }
 
-        stage('Deploy to EC2') {
+        stage('Deploy') {
             steps {
-                sh """
-                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} '
-                    docker stop ${CONTAINER_NAME} || true &&
-                    docker rm ${CONTAINER_NAME} || true &&
+                sh '''
+                ssh -o StrictHostKeyChecking=no ubuntu@3.91.15.96 "
+                    docker stop nodeapp || true &&
+                    docker rm nodeapp || true &&
                     docker pull ${IMAGE}:${BUILD_NUMBER} &&
-                    docker run -d --name ${CONTAINER_NAME} -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
-                '
-                """
+                    docker run -d --name nodeapp -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
+                "
+                '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo "✅ Pipeline Successful!"
-        }
-        failure {
-            echo "❌ Pipeline Failed - Check logs"
         }
     }
 }
