@@ -10,18 +10,12 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Debug Docker') {
+        stage('Check Docker') {
             steps {
                 sh '''
-                echo "Testing docker directly"
+                echo "Docker location check"
+                ls -l /usr/bin/docker
                 /usr/bin/docker --version
-                /usr/bin/docker ps
                 '''
             }
         }
@@ -52,7 +46,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                ssh -o StrictHostKeyChecking=no ubuntu@3.91.15.96 "
+                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} "
                     docker stop nodeapp || true &&
                     docker rm nodeapp || true &&
                     docker pull ${IMAGE}:${BUILD_NUMBER} &&
