@@ -5,6 +5,7 @@ pipeline {
         IMAGE = "karthiklingams364/node-app"
         APP_SERVER = "3.91.15.96"
         CONTAINER_NAME = "nodeapp"
+        DOCKER = "/usr/bin/docker"
     }
 
     stages {
@@ -15,10 +16,20 @@ pipeline {
             }
         }
 
+        stage('Verify Docker') {
+            steps {
+                sh '''
+                echo "Checking Docker..."
+                which docker || true
+                /usr/bin/docker --version
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 sh """
-                docker build -t ${IMAGE}:${BUILD_NUMBER} .
+                ${DOCKER} build -t ${IMAGE}:${BUILD_NUMBER} .
                 """
             }
         }
@@ -31,8 +42,8 @@ pipeline {
                     passwordVariable: 'PASS'
                 )]) {
                     sh """
-                    echo $PASS | docker login -u $USER --password-stdin
-                    docker push ${IMAGE}:${BUILD_NUMBER}
+                    echo $PASS | ${DOCKER} login -u $USER --password-stdin
+                    ${DOCKER} push ${IMAGE}:${BUILD_NUMBER}
                     """
                 }
             }
