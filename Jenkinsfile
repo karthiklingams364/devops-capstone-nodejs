@@ -2,51 +2,64 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "YOUR_DOCKERHUB_USERNAME/node-app"
-        APP_SERVER = "APP_SERVER_IP"
+        IMAGE = "karthiklingams364/node-app"
+        APP_SERVER = "3.91.15.96""
+        CONTAINER_NAME = "nodeapp"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/YOUR_USERNAME/devops-capstone-nodejs.git'
+                // Jenkins automatically checks out SCM,
+                // but keeping explicit checkout is safe
+                checkout scm
             }
         }
 
-        stage('Build Image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE:$BUILD_NUMBER .'
+                sh """
+                docker build -t $IMAGE:$BUILD_NUMBER .
+                """
             }
         }
 
-        stage('Push Image') {
+        stage('Login & Push to DockerHub') {
             steps {
                 withCredentials([usernamePassword(
-                credentialsId: 'dockerhub',
-                usernameVariable: 'USER',
-                passwordVariable: 'PASS'
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
                 )]) {
-
-                sh '''
-                echo $PASS | docker login -u $USER --password-stdin
-                docker push $IMAGE:$BUILD_NUMBER
-                '''
+                    sh """
+                    echo $PASS | docker login -u $USER --password-stdin
+                    docker push $IMAGE:$BUILD_NUMBER
+                    """
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to EC2') {
             steps {
                 sh """
-                ssh ubuntu@$APP_SERVER '
-                docker stop nodeapp || true
-                docker rm nodeapp || true
-                docker run -d --name nodeapp -p 3001:3000 $IMAGE:$BUILD_NUMBER
+                ssh -o StrictHostKeyChecking=no ubuntu@$APP_SERVER '
+                    docker stop $CONTAINER_NAME || true &&
+                    docker rm $CONTAINER_NAME || true &&
+                    docker pull $IMAGE:$BUILD_NUMBER &&
+                    docker run -d --name $CONTAINER_NAME -p 3001:3000 $IMAGE:$BUILD_NUMBER
                 '
                 """
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline Successful!"
+        }
+        failure {
+            echo "❌ Pipeline Failed - Check logs"
         }
     }
 }
