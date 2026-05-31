@@ -5,6 +5,7 @@ pipeline {
         IMAGE = "karthiklingams364/node-app"
         APP_SERVER = "3.91.15.96"
         CONTAINER_NAME = "nodeapp"
+        PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     }
 
     stages {
@@ -15,9 +16,22 @@ pipeline {
             }
         }
 
+        stage('Fix Docker PATH') {
+            steps {
+                sh '''
+                export PATH=$PATH:/usr/bin:/usr/local/bin
+                docker --version
+                docker ps
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
-                sh "docker build -t ${IMAGE}:${BUILD_NUMBER} ."
+                sh '''
+                export PATH=$PATH:/usr/bin:/usr/local/bin
+                docker build -t ${IMAGE}:${BUILD_NUMBER} .
+                '''
             }
         }
 
@@ -29,6 +43,7 @@ pipeline {
                     passwordVariable: 'PASS'
                 )]) {
                     sh '''
+                    export PATH=$PATH:/usr/bin:/usr/local/bin
                     echo $PASS | docker login -u $USER --password-stdin
                     docker push ${IMAGE}:${BUILD_NUMBER}
                     '''
