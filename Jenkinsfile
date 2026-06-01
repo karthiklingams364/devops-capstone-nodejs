@@ -19,14 +19,14 @@ pipeline {
 
         stage('Push') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
                     sh """
                     set -e
-
-                    echo "Logging into Docker Hub..."
                     echo $PASS | docker login -u $USER --password-stdin
-
-                    echo "Pushing image..."
                     docker push ${IMAGE}:${BUILD_NUMBER}
                     """
                 }
@@ -35,14 +35,16 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh """
-                ssh -o StrictHostKeyChecking=no ${APP_SERVER} '
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm ${CONTAINER_NAME} || true
-                    docker pull ${IMAGE}:${BUILD_NUMBER}
-                    docker run -d --name ${CONTAINER_NAME} -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
-                '
-                """
+                sshagent(['ec2-ssh']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ${APP_SERVER} '
+                        docker stop ${CONTAINER_NAME} || true
+                        docker rm ${CONTAINER_NAME} || true
+                        docker pull ${IMAGE}:${BUILD_NUMBER}
+                        docker run -d --name ${CONTAINER_NAME} -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
+                    '
+                    """
+                }
             }
         }
     }
