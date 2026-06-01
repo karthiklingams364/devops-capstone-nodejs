@@ -32,20 +32,17 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy') {
-            steps {
-                sshagent(['ec2-ssh']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ${APP_SERVER} '
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
-                        docker pull ${IMAGE}:${BUILD_NUMBER}
-                        docker run -d --name ${CONTAINER_NAME} -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
-                    '
-                    """
-                }
-            }
+stage('Deploy') {
+    steps {
+        sshagent(['ec2-ssh']) {
+            sh """
+            ssh -o StrictHostKeyChecking=no ${APP_SERVER} '
+                docker stop ${CONTAINER_NAME} || true
+                docker rm ${CONTAINER_NAME} || true
+                docker pull ${IMAGE}:${BUILD_NUMBER}
+                docker run -d --name ${CONTAINER_NAME} -p 3001:3000 ${IMAGE}:${BUILD_NUMBER}
+            '
+            """
         }
     }
 }
